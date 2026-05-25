@@ -28,7 +28,7 @@ jobs:
           command: pages deploy build --project-name=${{ secrets.CF_PROJECT }} --branch=main
 
       - name: 3️⃣ 清除CDN缓存
-        if: ${{ secrets.CF_ZONE != '' }}
+        if: secrets.CF_ZONE != ''
         run: |
           curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE }}/purge_cache" \
             -H "Authorization: Bearer ${{ secrets.CF_TOKEN }}" \

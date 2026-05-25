@@ -29,7 +29,10 @@ jobs:
         with:
           apiToken: ${{ env.CF_TOKEN }}
           accountId: ${{ env.CF_ACCOUNT }}
-          command: pages deploy build --project-name=${{ env.CF_PROJECT }} --branch=main
+          # 👇 1. 推荐方式：直接使用内置的 projectName 参数
+          projectName: ${{ env.CF_PROJECT }}
+          # 👇 2. 修改后的命令：只保留目录和分支，去掉了会报错的 --project-name
+          command: pages deploy build --branch=main
         env:
           NPM_CONFIG_REGISTRY: https://registry.npmmirror.com
 

@@ -1,4 +1,4 @@
-name: 一键部署到Cloudflare
+name: 一键部署到Cloudflare Pages
 
 on:
   workflow_dispatch:
@@ -11,35 +11,29 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CF_TOKEN: ${{ secrets.CF_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CF_ACCOUNT }}
+      CF_PROJECT: ${{ secrets.CF_PROJECT }}
+
     steps:
-      - name: 1️⃣ 下载网站ZIP包
+      - name: 1️⃣ 下载 ZIP 包
         run: |
-          echo "正在下载: ${{ inputs.zip_url }}"
           curl -f -L -o website.zip "${{ inputs.zip_url }}"
           mkdir -p build
           unzip -q website.zip -d build
-          echo "✅ 解压完成, 文件数量: $(find build -type f | wc -l)"
 
-      - name: 2️⃣ 部署到Cloudflare Pages
+      - name: 2️⃣ 部署到 Pages
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CF_TOKEN }}
-          accountId: ${{ secrets.CF_ACCOUNT }}
-          command: pages deploy build --project-name=${{ secrets.CF_PROJECT }} --branch=main
+          apiToken: ${{ env.CF_TOKEN }}
+          accountId: ${{ env.CF_ACCOUNT }}
+          command: pages deploy build --project-name=${{ env.CF_PROJECT }} --branch=main
+        env:
+          NPM_CONFIG_REGISTRY: https://registry.npmmirror.com
 
-      - name: 3️⃣ 清除CDN缓存
-        if: env.CF_ZONE != ''
+      - name: ✅ 部署成功
         run: |
-          curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE }}/purge_cache" \
-            -H "Authorization: Bearer ${{ secrets.CF_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data '{"purge_everything": true}'
-          echo "✅ CDN缓存已清除"
-
-      - name: ✅ 部署完成
-        run: |
-          echo ""
-          echo "🎉 部署成功！"
-          echo ""
-          echo "你的网站地址: https://${{ secrets.CF_PROJECT }}.pages.dev"
-          echo ""
+          echo "🎉 部署完成！"
+          echo "访问地址：https://${{ env.CF_PROJECT }}.pages.dev"

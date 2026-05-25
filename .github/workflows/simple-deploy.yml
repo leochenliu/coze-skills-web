@@ -1,0 +1,45 @@
+name: 一键部署到Cloudflare
+
+on:
+  workflow_dispatch:
+    inputs:
+      zip_url:
+        description: '👉 你的网站ZIP包下载地址'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1️⃣ 下载网站ZIP包
+        run: |
+          echo "正在下载: ${{ inputs.zip_url }}"
+          curl -f -L -o website.zip "${{ inputs.zip_url }}"
+          mkdir -p build
+          unzip -q website.zip -d build
+          echo "✅ 解压完成, 文件数量: $(find build -type f | wc -l)"
+
+      - name: 2️⃣ 部署到Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT }}
+          command: pages deploy build --project-name=${{ secrets.CF_PROJECT }} --branch=main
+
+      - name: 3️⃣ 清除CDN缓存
+        if: ${{ secrets.CF_ZONE != '' }}
+        run: |
+          curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CF_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything": true}'
+          echo "✅ CDN缓存已清除"
+
+      - name: ✅ 部署完成
+        run: |
+          echo ""
+          echo "🎉 部署成功！"
+          echo ""
+          echo "你的网站地址: https://${{ secrets.CF_PROJECT }}.pages.dev"
+          echo ""
